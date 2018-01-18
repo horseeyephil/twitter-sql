@@ -2,18 +2,22 @@
 var express = require('express');
 var router = express.Router();
 var tweetBank = require('../tweetBank');
+var client = require('../db/index.js');
 
 module.exports = function makeRouterWithSockets (io) {
 
   // a reusable function
   function respondWithAllTweets (req, res, next){
-    var allTheTweets = tweetBank.list();
-    res.render('index', {
-      title: 'Twitter.js',
-      tweets: allTheTweets,
-      showForm: true
+    client.query('SELECT * FROM tweets', function (err, result){
+      if (err) return next(err);
+      var allTheTweets = result.rows;
+      res.render('index', {
+        title: 'Twitter.js',
+        tweets: allTheTweets,
+        showForm: true
+      });
     });
-  }
+  };
 
   // here we basically treet the root view and tweets view as identical
   router.get('/', respondWithAllTweets);
@@ -21,15 +25,17 @@ module.exports = function makeRouterWithSockets (io) {
 
   // single-user page
   router.get('/users/:username', function(req, res, next){
-    var tweetsForName = tweetBank.find({ name: req.params.username });
-    res.render('index', {
-      title: 'Twitter.js',
-      tweets: tweetsForName,
-      showForm: true,
-      username: req.params.username
+    client.query('SELECT tweets.content FROM users, tweets WHERE tweets.user_id = users.id AND users.name=Beyonce',[req.params.username], function (err, result){
+      if (err) return next(err);
+      var tweetsForName = result.rows;
+      res.render('index', {
+        title: 'Twitter.js',
+        tweets: tweetsForName,
+        showForm: true,
+        username: req.params.username
+      });
     });
   });
-
   // single-tweet page
   router.get('/tweets/:id', function(req, res, next){
     var tweetsWithThatId = tweetBank.find({ id: Number(req.params.id) });
